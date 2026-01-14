@@ -1,0 +1,3053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pre Press Time Monitoring System - 6 Presses</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/material_blue.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* Filter Controls - FIXED: Better layout and draggable only on header */
+    .filter-controls {
+      position: fixed;
+      top: 60px;
+      right: 10px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      padding: 0;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      border: 2px solid #667eea;
+      transition: all 0.3s ease;
+      width: 250px;
+      user-select: none;
+    }
+
+    .filter-controls.dragging {
+      opacity: 0.8;
+      cursor: grabbing;
+    }
+
+    body.dark-mode .filter-controls {
+      background: rgba(26, 26, 26, 0.95);
+      border: 2px solid #d4af37;
+      box-shadow: 0 8px 32px rgba(212, 175, 55, 0.2);
+    }
+
+    .filter-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0;
+      padding: 12px 15px;
+      border-bottom: 1px solid #dee2e6;
+      cursor: move;
+      background: rgba(102, 126, 234, 0.1);
+      border-radius: 10px 10px 0 0;
+    }
+
+    body.dark-mode .filter-header {
+      border-bottom-color: #333;
+      background: rgba(212, 175, 55, 0.1);
+    }
+
+    .filter-header h3 {
+      color: #495057;
+      font-size: 0.95em;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    body.dark-mode .filter-header h3 {
+      color: #f0e6d2;
+    }
+
+    .filter-content {
+      padding: 15px;
+      cursor: default;
+    }
+
+    .filter-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.3s ease;
+      margin-bottom: 15px;
+    }
+
+    .filter-toggle:hover {
+      background: rgba(102, 126, 234, 0.1);
+    }
+
+    body.dark-mode .filter-toggle:hover {
+      background: rgba(212, 175, 55, 0.1);
+    }
+
+    .filter-toggle label {
+      font-weight: 600;
+      color: #495057;
+      font-size: 0.9em;
+      cursor: pointer;
+      flex-grow: 1;
+    }
+
+    body.dark-mode .filter-toggle label {
+      color: #f0e6d2;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 22px;
+      background: #dee2e6;
+      border-radius: 11px;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .toggle-switch.active {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+
+    body.dark-mode .toggle-switch {
+      background: #333;
+    }
+
+    body.dark-mode .toggle-switch.active {
+      background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
+    }
+
+    .toggle-slider {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.3s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch.active .toggle-slider {
+      transform: translateX(22px);
+    }
+
+    .filter-slider-container {
+      display: block;
+      margin-top: 8px;
+      cursor: default;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .slider-header label {
+      font-weight: 600;
+      color: #495057;
+      font-size: 0.85em;
+    }
+
+    body.dark-mode .slider-header label {
+      color: #f0e6d2;
+    }
+
+    .slider-value {
+      background: #667eea;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 0.8em;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    body.dark-mode .slider-value {
+      background: #d4af37;
+      color: #1a1a1a;
+    }
+
+    .minute-slider {
+      width: 100%;
+      height: 5px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: linear-gradient(to right, #11998e, #38ef7d);
+      border-radius: 2px;
+      outline: none;
+      margin: 10px 0;
+      cursor: pointer;
+    }
+
+    body.dark-mode .minute-slider {
+      background: linear-gradient(to right, #8b6914, #d4af37);
+    }
+
+    .minute-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #11998e;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+    }
+
+    .minute-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    body.dark-mode .minute-slider::-webkit-slider-thumb {
+      background: #f0e6d2;
+      border-color: #d4af37;
+    }
+
+    .minute-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #11998e;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    body.dark-mode .minute-slider::-moz-range-thumb {
+      background: #f0e6d2;
+      border-color: #d4af37;
+    }
+
+    .slider-info {
+      margin-top: 5px;
+      font-size: 0.75em;
+      color: #6c757d;
+      text-align: center;
+    }
+
+    body.dark-mode .slider-info {
+      color: #9ca3af;
+    }
+
+    .filtered-count {
+      margin-top: 12px;
+      padding: 8px;
+      background: rgba(102, 126, 234, 0.1);
+      border-radius: 6px;
+      text-align: center;
+      font-size: 0.8em;
+      color: #495057;
+      display: none;
+    }
+
+    .filtered-count.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    body.dark-mode .filtered-count {
+      background: rgba(212, 175, 55, 0.1);
+      color: #f0e6d2;
+    }
+
+    .filtered-count strong {
+      color: #11998e;
+      font-weight: 700;
+    }
+
+    body.dark-mode .filtered-count strong {
+      color: #d4af37;
+    }
+
+    .filter-close {
+      background: none;
+      border: none;
+      color: #6c757d;
+      font-size: 1.2em;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .filter-close:hover {
+      background: rgba(0, 0, 0, 0.05);
+      color: #dc3545;
+    }
+
+    body.dark-mode .filter-close {
+      color: #9ca3af;
+    }
+
+    body.dark-mode .filter-close:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ff6b6b;
+    }
+
+    .filter-minimize {
+      background: none;
+      border: none;
+      color: #6c757d;
+      font-size: 1em;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      margin-right: 4px;
+    }
+
+    .filter-minimize:hover {
+      background: rgba(0, 0, 0, 0.05);
+      color: #495057;
+    }
+
+    body.dark-mode .filter-minimize {
+      color: #9ca3af;
+    }
+
+    body.dark-mode .filter-minimize:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f0e6d2;
+    }
+
+    .filter-controls.minimized {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      overflow: hidden;
+      border-radius: 20px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: 2px solid #667eea;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.dark-mode .filter-controls.minimized {
+      background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
+      border: 2px solid #d4af37;
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+    }
+
+    .filter-controls.minimized .filter-content {
+      display: none;
+    }
+
+    .filter-controls.minimized .filter-minimize {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(180deg);
+      color: white;
+      margin: 0;
+    }
+
+    body.dark-mode .filter-controls.minimized .filter-minimize {
+      color: #1a1a1a;
+    }
+
+    .filter-controls.minimized .filter-header {
+      display: none;
+    }
+
+    .filter-controls.minimized .filter-close {
+      display: none;
+    }
+
+    .filter-controls.minimized:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    body.dark-mode .filter-controls.minimized:hover {
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Adjust theme toggle position */
+    .theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 1001;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.1);
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .theme-toggle svg {
+      width: 22px;
+      height: 22px;
+      transition: all 0.5s ease;
+    }
+
+    .theme-toggle .sun { color: #ffd700; }
+    .theme-toggle .moon {
+      color: #f0e6d2;
+      opacity: 0;
+      position: absolute;
+      transform: rotate(-90deg);
+    }
+
+    body.dark-mode .theme-toggle .sun {
+      opacity: 0;
+      transform: rotate(90deg);
+    }
+
+    body.dark-mode .theme-toggle .moon {
+      opacity: 1;
+      transform: rotate(0deg);
+    }
+
+    /* Export dropdown styles */
+    .export-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .export-dropdown-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      background-color: white;
+      min-width: 200px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      z-index: 1000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+
+    body.dark-mode .export-dropdown-content {
+      background-color: #2a2a2a;
+      border: 1px solid #d4af37;
+    }
+
+    .export-dropdown-content a {
+      color: #495057;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+      font-size: 0.9em;
+      transition: background 0.3s ease;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    body.dark-mode .export-dropdown-content a {
+      color: #f0e6d2;
+      border-bottom: 1px solid #333;
+    }
+
+    .export-dropdown-content a:last-child {
+      border-bottom: none;
+    }
+
+    .export-dropdown-content a:hover {
+      background-color: #f8f9fa;
+    }
+
+    body.dark-mode .export-dropdown-content a:hover {
+      background-color: #333;
+    }
+
+    .export-dropdown:hover .export-dropdown-content {
+      display: block;
+    }
+
+    .btn-export {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 10px 16px;
+      font-size: 0.85em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .export-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .filter-controls {
+        top: 60px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-width: 300px;
+        margin: 0 auto;
+      }
+      
+      .filter-controls.minimized {
+        top: 60px;
+        right: 10px;
+        left: auto;
+        width: 40px;
+        height: 40px;
+      }
+      
+      .export-dropdown-content {
+        left: 0;
+        right: auto;
+      }
+    }
+
+    /* Add CSS for filter status in all-press-stats */
+    .filter-status-card {
+      grid-column: span 2;
+      text-align: center;
+      padding: 10px;
+    }
+
+    .filter-status-card .value {
+      font-size: 0.95em !important;
+      color: #11998e !important;
+      font-weight: 600;
+    }
+
+    body.dark-mode .filter-status-card .value {
+      color: #d4af37 !important;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 10px;
+      transition: all 0.5s ease;
+      position: relative;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body.dark-mode {
+      background: #0a0a0a;
+      color: #f0e6d2;
+    }
+
+    body.dark-mode .container {
+      background: #1a1a1a;
+      border: 2px solid #d4af37;
+      box-shadow: 0 20px 60px rgba(212, 175, 55, 0.2);
+    }
+
+    body.dark-mode .header {
+      background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+      border-bottom: 2px solid #d4af37;
+    }
+
+    body.dark-mode .controls {
+      background: #2a2a2a;
+      border-bottom: 2px solid #d4af37;
+    }
+
+    body.dark-mode .control-group label { color: #f0e6d2; }
+
+    body.dark-mode input[type="text"].date-input {
+      background: #1a1a1a;
+      border: 2px solid #d4af37;
+      color: #f0e6d2;
+    }
+
+    body.dark-mode input[type="text"].date-input:focus {
+      border-color: #ffd700;
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+    }
+
+    body.dark-mode .calendar-icon { color: #d4af37; }
+
+    body.dark-mode .press-btn {
+      background: #1a1a1a;
+      border: 2px solid #d4af37;
+      color: #f0e6d2;
+    }
+
+    body.dark-mode .press-btn.active {
+      background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
+      color: #1a1a1a;
+      border-color: #ffd700;
+    }
+
+    body.dark-mode .section {
+      background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+      border-bottom: 2px solid #d4af37;
+    }
+
+    body.dark-mode table {
+      background: #1a1a1a;
+      border: 1px solid #d4af37;
+    }
+
+    body.dark-mode thead {
+      background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
+    }
+
+    body.dark-mode tbody tr { border-bottom: 1px solid #333; }
+
+    body.dark-mode tbody tr:hover {
+      background: rgba(212, 175, 55, 0.1);
+      box-shadow: 0 2px 8px rgba(212, 175, 55, 0.2);
+    }
+
+    body.dark-mode tbody td { color: #f0e6d2; }
+
+    body.dark-mode .stats { background: #2a2a2a; }
+
+    body.dark-mode .stat-card {
+      background: #1a1a1a;
+      border: 1px solid #d4af37;
+      color: #f0e6d2;
+    }
+
+    body.dark-mode .stat-card h3 { color: #d4af37; }
+    body.dark-mode .stat-card .value { color: #ffd700; }
+
+    .firefly {
+      position: fixed;
+      width: 4px;
+      height: 4px;
+      background: #ffd700;
+      border-radius: 50%;
+      filter: blur(1px);
+      box-shadow: 0 0 10px 2px #ffd700;
+      opacity: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .orb {
+      position: fixed;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(212,175,55,0.4) 0%, rgba(212,175,55,0) 70%);
+      filter: blur(5px);
+      opacity: 0.3;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .meteor {
+      position: fixed;
+      width: 2px;
+      height: 50px;
+      background: linear-gradient(to bottom, transparent, #ffd700);
+      transform: rotate(-45deg);
+      opacity: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    body.dark-mode { cursor: none; }
+
+    .lantern-cursor {
+      position: fixed;
+      width: 40px;
+      height: 60px;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    body.dark-mode .lantern-cursor { opacity: 1; }
+
+    .lantern-body {
+      width: 30px;
+      height: 50px;
+      background: radial-gradient(ellipse at center, #d4af37 0%, #8b6914 100%);
+      border-radius: 15px 15px 5px 5px;
+      position: relative;
+      margin: 0 auto;
+      box-shadow: 0 0 20px 5px rgba(212, 175, 55, 0.7);
+    }
+
+    .lantern-top, .lantern-bottom {
+      width: 35px;
+      height: 5px;
+      background: #d4af37;
+      border-radius: 5px;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .lantern-top { top: -5px; }
+    .lantern-bottom { bottom: -5px; }
+
+    .lantern-light {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 80px;
+      background: radial-gradient(ellipse at center, rgba(255,215,0,0.6) 0%, rgba(255,215,0,0) 70%);
+      border-radius: 50%;
+      filter: blur(10px);
+    }
+
+    .repel-effect {
+      position: fixed;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,215,0,0.4) 0%, rgba(255,215,0,0) 70%);
+      pointer-events: none;
+      z-index: 9998;
+      opacity: 0;
+    }
+
+    body.dark-mode ::-webkit-scrollbar-thumb { background: #d4af37; }
+    body.dark-mode ::-webkit-scrollbar-thumb:hover { background: #b8941f; }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb {
+      background: #a1a1a1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #7f7f7f; }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      transition: all 0.5s ease;
+      position: relative;
+      z-index: 2;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+      padding: 20px 15px;
+      text-align: center;
+      transition: all 0.5s ease;
+    }
+
+    .header h1 {
+      color: white;
+      font-size: 1.6em;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      margin-bottom: 8px;
+    }
+
+    .datetime {
+      color: white;
+      font-size: 0.95em;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .controls {
+      background: #f8f9fa;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-bottom: 3px solid #e9ecef;
+      transition: all 0.5s ease;
+    }
+
+    .date-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .control-group label {
+      font-weight: 600;
+      color: #495057;
+      font-size: 0.9em;
+    }
+
+    .date-input-wrapper {
+      position: relative;
+      display: block;
+      width: 100%;
+    }
+
+    input[type="text"].date-input {
+      padding: 12px 40px 12px 12px;
+      border: 2px solid #dee2e6;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: 0.3s;
+      width: 100%;
+      cursor: pointer;
+      background: white;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type="text"].date-input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+      outline: none;
+    }
+
+    .calendar-icon {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      stroke-width: 1.8;
+      color: #495057;
+      cursor: pointer;
+      pointer-events: none;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      min-height: 44px;
+      touch-action: manipulation;
+    }
+
+    .btn-view {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .btn-view:hover, .btn-view:active {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
+    }
+
+    /* FIXED "In Progress" row styling - soft fade effect */
+    tbody tr.in-progress {
+      background: linear-gradient(90deg, rgba(33, 150, 243, 0.1), rgba(33, 150, 243, 0.2));
+      animation: soft-fade 3s ease-in-out infinite;
+    }
+
+    @keyframes soft-fade {
+      0%, 100% { 
+        background: linear-gradient(90deg, rgba(33, 150, 243, 0.1), rgba(33, 150, 243, 0.15));
+      }
+      50% { 
+        background: linear-gradient(90deg, rgba(33, 150, 243, 0.15), rgba(33, 150, 243, 0.25));
+      }
+    }
+
+    /* Updated press-selector for 6 presses */
+    .press-selector {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    @media (min-width: 768px) {
+      .press-selector {
+        grid-template-columns: repeat(7, 1fr);
+      }
+    }
+
+    .press-btn {
+      padding: 10px 8px;
+      border: 2px solid #dee2e6;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      transition: 0.3s;
+      font-weight: 600;
+      color: #495057;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 0.8em;
+      min-height: 40px;
+      touch-action: manipulation;
+    }
+
+    .press-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: #667eea;
+      transform: scale(1.02);
+    }
+
+    .press-btn:hover, .press-btn:active {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .status-working {
+      background: #28a745;
+      animation: pulse-glow 2s ease-in-out infinite;
+      box-shadow: 0 0 8px #28a745;
+    }
+
+    .status-idle {
+      background: #dc3545;
+      box-shadow: 0 0 4px #dc3545;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 8px #28a745;
+      }
+      50% {
+        opacity: 0.6;
+        box-shadow: 0 0 14px #28a745;
+      }
+    }
+
+    .section {
+      background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+      padding: 15px;
+      transition: all 0.5s ease;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .section h2 {
+      color: white;
+      font-size: 1.3em;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 30px;
+      color: #6c757d;
+      font-size: 1.1em;
+    }
+
+    .loading-quote {
+      font-style: italic;
+      margin-top: 15px;
+      font-size: 1em;
+      min-height: 1.5em;
+      animation: fadeInQuote 0.5s ease, colorShift 3s ease-in-out infinite;
+      background: linear-gradient(90deg, #667eea, #764ba2, #f6d365, #fda085, #11998e, #667eea);
+      background-size: 300% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 600;
+    }
+
+    @keyframes fadeInQuote {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes colorShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    body.dark-mode .loading {
+      color: #d4af37;
+    }
+
+    body.dark-mode .loading-quote {
+      background: linear-gradient(90deg, #ffd700, #d4af37, #fff5cc, #d4af37, #ffd700);
+      background-size: 300% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      animation: spin 1s linear infinite;
+      margin: 15px auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .table-container {
+      padding: 15px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      transition: all 0.5s ease;
+      min-width: 500px;
+    }
+
+    thead {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    thead th {
+      color: white;
+      padding: 12px 10px;
+      text-align: left;
+      font-size: 0.85em;
+      text-transform: uppercase;
+    }
+
+    thead th small {
+      font-size: 0.75em;
+      font-weight: normal;
+      opacity: 0.9;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #e9ecef;
+      transition: background 0.4s ease;
+    }
+
+    tbody tr:hover {
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    tbody tr.success {
+      background: linear-gradient(90deg, rgba(40, 167, 69, 0.15), rgba(40, 167, 69, 0));
+    }
+
+    tbody tr.warning {
+      background: linear-gradient(90deg, rgba(255, 193, 7, 0.2), rgba(255, 193, 7, 0));
+    }
+
+    tbody tr.danger {
+      background: linear-gradient(90deg, rgba(220, 53, 69, 0.25), rgba(220, 53, 69, 0));
+      animation: danger-pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes danger-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+
+    tbody td {
+      padding: 12px 10px;
+      color: #495057;
+      font-size: 0.9em;
+    }
+
+    .duration {
+      font-weight: 700;
+      font-size: 1em;
+    }
+
+    .duration.success { color: #28a745; }
+    .duration.in-progress { color: #2196f3; }
+    .duration.warning { color: #ffc107; }
+    .duration.danger { color: #dc3545; }
+
+    .idle-time {
+      font-weight: 600;
+      color: #6c757d;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 40px 15px;
+      color: #6c757d;
+      font-size: 1.1em;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 15px;
+      background: #f8f9fa;
+      transition: all 0.5s ease;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 12px 8px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      transition: 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-card h3 {
+      color: #6c757d;
+      font-size: 0.7em;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+    }
+
+    .stat-card .subtitle {
+      color: #9ca3af;
+      font-size: 0.6em;
+      margin-bottom: 6px;
+    }
+
+    .stat-card .value {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    /* Updated for 6 presses layout */
+    .all-presses-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 15px;
+      padding: 10px;
+    }
+
+    @media (min-width: 768px) {
+      .all-presses-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .all-presses-container {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .mini-table-container {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #dee2e6;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .mini-table-container:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
+    }
+
+    .mini-table-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 15px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95em;
+    }
+
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8em;
+      background: white;
+    }
+
+    .mini-table th {
+      background: #f8f9fa;
+      padding: 10px 8px;
+      text-align: left;
+      font-weight: 600;
+      color: #495057;
+      border-bottom: 1px solid #dee2e6;
+      text-transform: uppercase;
+      font-size: 0.85em;
+      letter-spacing: 0.3px;
+    }
+
+    .mini-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #e9ecef;
+      color: #495057;
+    }
+
+    .mini-table tr:last-child td { border-bottom: none; }
+
+    .mini-table tr:hover {
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    .mini-table .duration {
+      font-weight: 600;
+      font-size: 0.9em;
+    }
+
+    .more-entries {
+      text-align: center;
+      padding: 12px;
+      color: #667eea;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      background: rgba(102, 126, 234, 0.05);
+      border-top: 1px solid #e9ecef;
+    }
+
+    .more-entries:hover, .more-entries:active {
+      background: rgba(102, 126, 234, 0.1);
+      color: #5a67d8;
+    }
+
+    /* Dark mode mini tables */
+    body.dark-mode .mini-table-container {
+      background: #1a1a1a;
+      border: 2px solid #d4af37;
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.15);
+    }
+
+    body.dark-mode .mini-table-container:hover {
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.25);
+    }
+
+    body.dark-mode .mini-table-header {
+      background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
+      color: #1a1a1a;
+    }
+
+    body.dark-mode .mini-table {
+      background: #1a1a1a;
+    }
+
+    body.dark-mode .mini-table th {
+      background: #2a2a2a;
+      color: #d4af37;
+      border-bottom: 1px solid #d4af37;
+    }
+
+    body.dark-mode .mini-table td {
+      border-bottom: 1px solid #333;
+      color: #f0e6d2;
+    }
+
+    body.dark-mode .mini-table tr:hover {
+      background: rgba(212, 175, 55, 0.1);
+    }
+
+    body.dark-mode .more-entries {
+      color: #d4af37;
+      background: rgba(212, 175, 55, 0.1);
+      border-top: 1px solid #333;
+    }
+
+    body.dark-mode .more-entries:hover, body.dark-mode .more-entries:active {
+      background: rgba(212, 175, 55, 0.2);
+      color: #ffd700;
+    }
+
+    /* Updated all-press-stats for 6 presses */
+    .all-press-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 10px;
+    }
+
+    @media (min-width: 768px) {
+      .all-press-stats {
+        grid-template-columns: repeat(5, 1fr);
+      }
+    }
+
+    .all-stat-card {
+      background: white;
+      padding: 15px 12px;
+      border-radius: 10px;
+      text-align: center;
+      border: 1px solid #dee2e6;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .all-stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
+    }
+
+    .all-stat-card h4 {
+      color: #6c757d;
+      font-size: 0.75em;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .all-stat-card .value {
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    /* Dark mode all-stat-cards */
+    body.dark-mode .all-stat-card {
+      background: #1a1a1a;
+      border: 2px solid #d4af37;
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.15);
+    }
+
+    body.dark-mode .all-stat-card:hover {
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.25);
+    }
+
+    body.dark-mode .all-stat-card h4 {
+      color: #d4af37;
+    }
+
+    body.dark-mode .all-stat-card .value {
+      color: #ffd700;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+
+    /* Flatpickr mobile fixes */
+    .flatpickr-calendar {
+      font-size: 14px !important;
+    }
+
+    .flatpickr-day {
+      height: 40px !important;
+      line-height: 40px !important;
+    }
+
+    .flatpickr-months {
+      padding: 5px 0 !important;
+    }
+
+    @media (min-width: 768px) {
+      body { padding: 20px; }
+
+      .header { padding: 30px; }
+      .header h1 { font-size: 2.2em; }
+      .datetime { font-size: 1.2em; }
+
+      .controls { padding: 20px; }
+
+      .date-controls {
+        flex-wrap: nowrap;
+      }
+
+      .control-group { min-width: 160px; }
+
+      .press-btn {
+        padding: 10px 12px;
+        font-size: 0.85em;
+      }
+
+      .section { padding: 20px 30px; }
+      .section h2 { font-size: 1.8em; }
+
+      .table-container { padding: 30px; }
+
+      table { min-width: auto; }
+
+      thead th {
+        padding: 18px;
+        font-size: 1em;
+      }
+
+      tbody td {
+        padding: 15px 18px;
+        font-size: 1em;
+      }
+
+      .stats {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        padding: 30px;
+      }
+
+      .stat-card {
+        padding: 20px;
+      }
+
+      .stat-card h3 { font-size: 0.9em; }
+      .stat-card .value { font-size: 1.5em; }
+
+      .all-presses-container {
+        gap: 20px;
+        padding: 20px;
+      }
+
+      .all-press-stats {
+        gap: 15px;
+        padding: 20px;
+      }
+      
+      .filter-status-card {
+        grid-column: span 2;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .all-presses-container {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Filter Controls -->
+  <div class="filter-controls minimized" id="filterControls">
+    <div class="filter-header">
+      <h3>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        Duration Filter
+      </h3>
+      <div>
+        <button class="filter-minimize" id="filterMinimize" title="Minimize">−</button>
+        <button class="filter-close" id="filterClose" title="Close">×</button>
+      </div>
+    </div>
+    
+    <div class="filter-content">
+      <div class="filter-toggle" id="filterToggleButton">
+        <label>Filter Short Durations</label>
+        <div class="toggle-switch active" id="filterToggle">
+          <div class="toggle-slider"></div>
+        </div>
+      </div>
+      
+      <div class="filter-slider-container">
+        <div class="slider-header">
+          <label>Minimum Duration:</label>
+          <div class="slider-value" id="sliderValue">6 min</div>
+        </div>
+        <input type="range" min="1" max="30" value="6" class="minute-slider" id="durationSlider">
+        <div class="slider-info">Hide durations below this threshold</div>
+        
+        <div class="filtered-count" id="filteredCount">
+          Filtered out <strong id="filteredNumber">0</strong> entries
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="theme-toggle" id="themeToggle">
+    <svg class="sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+    <svg class="moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </div>
+
+  <div class="lantern-cursor" id="lanternCursor">
+    <div class="lantern-top"></div>
+    <div class="lantern-body"></div>
+    <div class="lantern-bottom"></div>
+    <div class="lantern-light"></div>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h1>Pre Press Time Monitoring System - 6 Presses</h1>
+      <div class="datetime" id="currentDateTime"></div>
+    </div>
+
+    <div class="controls">
+      <div class="date-controls">
+        <div class="control-group">
+          <label>From Date:</label>
+          <div class="date-input-wrapper">
+            <input type="text" class="date-input" id="fromDate" placeholder="DD/MM/YYYY" readonly />
+            <svg class="calendar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>To Date:</label>
+          <div class="date-input-wrapper">
+            <input type="text" class="date-input" id="toDate" placeholder="DD/MM/YYYY" readonly />
+            <svg class="calendar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+        </div>
+        <button class="btn btn-view" onclick="loadData()">VIEW</button>
+      </div>
+      <div class="control-group">
+        <label>Select Press:</label>
+        <div class="press-selector" id="pressButtons"></div>
+      </div>
+    </div>
+
+    <div class="stats" id="statsContainer">
+      <div class="stat-card">
+        <h3>Total Presses</h3>
+        <div class="value" id="totalPresses">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Avg Duration</h3>
+        <div class="value" id="avgDuration">0:00</div>
+      </div>
+      <div class="stat-card">
+        <h3>Below 30 Min</h3>
+        <div class="subtitle">2min margin</div>
+        <div class="value" id="belowThirty">0</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2 id="pressTitle">All 6 Pre Presses</h2>
+        <div class="export-dropdown">
+          <button class="btn btn-export">
+            <svg class="export-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export
+          </button>
+          <div class="export-dropdown-content">
+            <a href="#" onclick="exportToCSV()">Export as CSV</a>
+            <a href="#" onclick="exportToPNG()">Export as PNG</a>
+            <a href="#" onclick="exportToPDF()">Export as PDF</a>
+            <a href="#" onclick="exportPreviousDayPDF()">Export Previous Day as PDF</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container" id="allPressesContainer">
+      <div id="allPressLoadingContainer" class="loading">
+        <div class="spinner"></div>
+        <p>Loading data...</p>
+        <p class="loading-quote" id="allPressLoadingQuote"></p>
+      </div>
+      <div class="all-press-stats" id="allPressStats"></div>
+      <div class="all-presses-container" id="allPressesTables"></div>
+    </div>
+
+    <div class="table-container" id="singlePressContainer" style="display: none">
+      <div id="loadingContainer" class="loading">
+        <div class="spinner"></div>
+        <p>Loading data...</p>
+        <p class="loading-quote" id="singlePressLoadingQuote"></p>
+      </div>
+      <table id="dataTable" style="display: none">
+        <thead>
+          <tr>
+            <th>DATE<br><small>dd-mm-yyyy</small></th>
+            <th>START<br><small>hh:mm:ss</small></th>
+            <th>END<br><small>hh:mm:ss</small></th>
+            <th>DURATION<br><small>mm:ss</small></th>
+            <th>IDLE<br><small>hh:mm:ss</small></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div id="noDataContainer" class="no-data" style="display: none">
+        <p>No data available for the selected date range.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziWBzuxJDRurPbKnIozW1_kFMvfhvrT1XMtqpWrAu29mHe1S34A1_G2JL4CGOUnHc3vg/exec"; // Replace with your actual URL
+
+    const LOADING_QUOTES = [
+      "Every step forward counts.",
+      "Patience builds great results.",
+      "Good things take a moment.",
+      "Progress is happening.",
+      "Stay hopeful; it's on the way.",
+      "Great outcomes begin with small starts.",
+      "Your wait will be worth it.",
+      "Everything is aligning for you.",
+      "Let the journey unfold.",
+      "Believe in the process.",
+      "We're moving forward—slowly but surely.",
+      "Nothing great happens instantly.",
+      "Trust the timing.",
+      "You're closer than you think.",
+      "The path is being prepared.",
+      "Even delays have purpose.",
+      "Patience is silent strength.",
+      "Every moment builds something.",
+      "Hold on—good is coming.",
+      "One moment can change everything.",
+      "Still faster than government paperwork.",
+      "Loading… because teleportation isn't invented yet.",
+      "Hold on… brewing digital coffee.",
+      "Loading… please don't blink aggressively.",
+      "We're not slow. You're just fast.",
+      "Buffering… like my brain on Mondays.",
+      "Loading… summoning the tech gods.",
+      "Almost ready. The intern is running.",
+      "Working… unlike my Wi-Fi sometimes.",
+      "Loading… 99% done (just kidding).",
+      "Preparing stuff you didn't ask for.",
+      "Loading… trust the process. Or don't.",
+      "We're making progress… somewhere.",
+      "Just a sec… arguing with the server.",
+      "Loading… praying nobody unplugged something.",
+      "Almost there… finishing a long nap.",
+      "Patience… we only broke one thing.",
+      "Loading… chasing missing semicolons.",
+      "Still loading… like your favorite game updates.",
+      "Processing… please hold your applause.",
+      "Compiling… don't disturb the electrons.",
+      "Loading… optimizing algorithmic magic.",
+      "Fetching data packets…",
+      "Executing subroutines… standby.",
+      "Loading… recalibrating system states.",
+      "Synchronizing with server…",
+      "De-referencing null expectations.",
+      "Loading… avoiding race conditions.",
+      "Hashing… encrypting… breathing.",
+      "Pinging the universe for answers…",
+      "Loading… aligning datasets.",
+      "Debug mode: OFF (for now).",
+      "Initiating background threads…",
+      "Loading… rewriting logic on the fly.",
+      "Running diagnostics… wait a sec.",
+      "Performing handshake with reality.",
+      "Loading… the CPU is doing cardio.",
+      "Optimizing memory pathways.",
+      "Loading… compressing inefficiency.",
+      "Executing high-priority human patience request.",
+      "Loading… aligning billions of table cells.",
+      "Sorting columns… and my life.",
+      "Loading rows… please don't count them.",
+      "Formatting tables… the real boss fight.",
+      "Fetching data… hope you like rows.",
+      "Loading… because these tables don't fill themselves.",
+      "Preparing rows, columns, chaos.",
+      "Loading… ironing out wrinkled tables.",
+      "Still loading… too many cells escaped.",
+      "Summoning the Table Overlord…"
+    ];
+
+    function getRandomQuote() {
+      return LOADING_QUOTES[Math.floor(Math.random() * LOADING_QUOTES.length)];
+    }
+
+    function updateLoadingQuotes() {
+      document.getElementById("allPressLoadingQuote").textContent = getRandomQuote();
+      document.getElementById("singlePressLoadingQuote").textContent = getRandomQuote();
+    }
+
+    let currentPress = "all";
+    let allData = {};
+    let todayStatusData = {};
+    let fromDatePicker, toDatePicker;
+    let darkMode = false;
+    let fireflies = [];
+    let orbs = [];
+    let meteors = [];
+    let meteorInterval = null;
+    
+    // Filter variables
+    let filterEnabled = true;
+    let filterThreshold = 6;
+    let filteredCount = 0;
+    let filterMinimized = true;
+    
+    // Dragging variables
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let initialLeft = 0;
+    let initialTop = 0;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      updateDateTime();
+      setInterval(updateDateTime, 1000);
+
+      const today = new Date();
+      
+      // Initialize Flatpickr
+      fromDatePicker = flatpickr("#fromDate", {
+        dateFormat: "d/m/Y",
+        defaultDate: today,
+        allowInput: false,
+        clickOpens: true,
+        disableMobile: false,
+        onChange: function(selectedDates, dateStr, instance) {
+          if (selectedDates.length > 0) {
+            const d = selectedDates[0];
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            instance.input.value = `${day}/${month}/${year}`;
+          }
+        },
+        onReady: function(selectedDates, dateStr, instance) {
+          if (selectedDates.length > 0) {
+            const d = selectedDates[0];
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            instance.input.value = `${day}/${month}/${year}`;
+          }
+        }
+      });
+
+      toDatePicker = flatpickr("#toDate", {
+        dateFormat: "d/m/Y",
+        defaultDate: today,
+        allowInput: false,
+        clickOpens: true,
+        disableMobile: false,
+        onChange: function(selectedDates, dateStr, instance) {
+          if (selectedDates.length > 0) {
+            const d = selectedDates[0];
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            instance.input.value = `${day}/${month}/${year}`;
+          }
+        },
+        onReady: function(selectedDates, dateStr, instance) {
+          if (selectedDates.length > 0) {
+            const d = selectedDates[0];
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            instance.input.value = `${day}/${month}/${year}`;
+          }
+        }
+      });
+
+      // Initialize filter
+      document.getElementById("durationSlider").value = filterThreshold;
+      updateSliderValue(filterThreshold);
+      
+      // Initialize filter controls with proper event listeners
+      initializeFilterControls();
+      
+      initializePressButtons();
+      loadData();
+      
+      loadTodayStatusData();
+      setInterval(loadTodayStatusData, 30000);
+
+      document.getElementById("themeToggle").addEventListener("click", toggleTheme);
+      initializeLanternCursor();
+    });
+
+    // Initialize filter controls with proper event listeners
+    function initializeFilterControls() {
+      const filterToggle = document.getElementById("filterToggle");
+      const filterToggleButton = document.getElementById("filterToggleButton");
+      const durationSlider = document.getElementById("durationSlider");
+      const filterMinimizeBtn = document.getElementById("filterMinimize");
+      const filterCloseBtn = document.getElementById("filterClose");
+      const filterControls = document.getElementById("filterControls");
+      const filterHeader = document.querySelector(".filter-header");
+      
+      // Toggle filter on switch click
+      filterToggle.addEventListener("click", toggleFilter);
+      filterToggleButton.addEventListener("click", toggleFilter);
+      
+      // Slider events
+      durationSlider.addEventListener("input", function() {
+        updateSliderValue(this.value);
+        if (filterEnabled) {
+          applyFilter();
+        }
+      });
+      
+      durationSlider.addEventListener("change", function() {
+        if (filterEnabled) {
+          applyFilter();
+        }
+      });
+      
+      // Minimize/close buttons
+      filterMinimizeBtn.addEventListener("click", toggleMinimize);
+      filterCloseBtn.addEventListener("click", closeFilter);
+      
+      // Initialize dragging on header only
+      initializeDragging(filterControls, filterHeader);
+      
+      // Click to maximize minimized filter
+      filterControls.addEventListener("click", function(e) {
+        if (filterMinimized && !e.target.closest('.filter-minimize') && !e.target.closest('.filter-close')) {
+          toggleMinimize();
+        }
+      });
+    }
+
+    // Dragging only on header
+    function initializeDragging(element, handle) {
+      let isDragging = false;
+      let startX, startY, initialLeft, initialTop;
+      
+      handle.addEventListener('mousedown', startDrag);
+      document.addEventListener('mousemove', drag);
+      document.addEventListener('mouseup', stopDrag);
+      
+      handle.addEventListener('touchstart', startDragTouch);
+      document.addEventListener('touchmove', dragTouch);
+      document.addEventListener('touchend', stopDrag);
+      
+      function startDrag(e) {
+        if (filterMinimized) return;
+        isDragging = true;
+        element.classList.add('dragging');
+        
+        startX = e.clientX;
+        startY = e.clientY;
+        
+        const rect = element.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        
+        e.preventDefault();
+      }
+      
+      function startDragTouch(e) {
+        if (filterMinimized || e.touches.length !== 1) return;
+        isDragging = true;
+        element.classList.add('dragging');
+        
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        
+        const rect = element.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        
+        e.preventDefault();
+      }
+      
+      function drag(e) {
+        if (!isDragging) return;
+        
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        
+        let newLeft = initialLeft + dx;
+        let newTop = initialTop + dy;
+        
+        // Keep within viewport bounds
+        const maxX = window.innerWidth - element.offsetWidth;
+        const maxY = window.innerHeight - element.offsetHeight;
+        
+        newLeft = Math.max(0, Math.min(newLeft, maxX));
+        newTop = Math.max(0, Math.min(newTop, maxY));
+        
+        element.style.left = `${newLeft}px`;
+        element.style.top = `${newTop}px`;
+        element.style.right = 'auto';
+      }
+      
+      function dragTouch(e) {
+        if (!isDragging || e.touches.length !== 1) return;
+        
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        
+        let newLeft = initialLeft + dx;
+        let newTop = initialTop + dy;
+        
+        const maxX = window.innerWidth - element.offsetWidth;
+        const maxY = window.innerHeight - element.offsetHeight;
+        
+        newLeft = Math.max(0, Math.min(newLeft, maxX));
+        newTop = Math.max(0, Math.min(newTop, maxY));
+        
+        element.style.left = `${newLeft}px`;
+        element.style.top = `${newTop}px`;
+        element.style.right = 'auto';
+        
+        e.preventDefault();
+      }
+      
+      function stopDrag() {
+        isDragging = false;
+        element.classList.remove('dragging');
+      }
+    }
+
+    function toggleMinimize() {
+      const filterControls = document.getElementById('filterControls');
+      const minimizeBtn = document.getElementById('filterMinimize');
+      
+      filterMinimized = !filterMinimized;
+      
+      if (filterMinimized) {
+        filterControls.classList.add('minimized');
+        minimizeBtn.innerHTML = '+';
+        minimizeBtn.title = 'Maximize';
+      } else {
+        filterControls.classList.remove('minimized');
+        minimizeBtn.innerHTML = '−';
+        minimizeBtn.title = 'Minimize';
+      }
+    }
+
+    function closeFilter() {
+      const filterControls = document.getElementById('filterControls');
+      filterControls.style.display = 'none';
+    }
+
+    // Filter Functions
+    function toggleFilter() {
+      filterEnabled = !filterEnabled;
+      const toggle = document.getElementById("filterToggle");
+      toggle.classList.toggle("active", filterEnabled);
+      
+      if (filterEnabled) {
+        applyFilter();
+      } else {
+        if (currentPress === "all") {
+          displayAllPresses();
+        } else {
+          displaySinglePress(currentPress);
+        }
+        document.getElementById("filteredCount").classList.remove("active");
+      }
+    }
+
+    function updateSliderValue(value) {
+      filterThreshold = parseInt(value);
+      document.getElementById("sliderValue").textContent = `${value} min`;
+    }
+
+    function applyFilter() {
+      if (!filterEnabled) return;
+      
+      if (currentPress === "all") {
+        displayAllPresses();
+      } else {
+        displaySinglePress(currentPress);
+      }
+    }
+
+    function filterData(data) {
+      if (!filterEnabled) return data;
+      
+      const thresholdSeconds = filterThreshold * 60;
+      filteredCount = 0;
+      
+      const filteredData = data.filter(row => {
+        // Don't filter "In Progress" rows
+        if (!row.endTime || row.endTime.trim() === '') {
+          return true;
+        }
+        
+        const duration = parseDuration(row.duration);
+        if (duration >= thresholdSeconds) {
+          return true;
+        } else {
+          filteredCount++;
+          return false;
+        }
+      });
+      
+      const filteredCountElement = document.getElementById("filteredCount");
+      const filteredNumberElement = document.getElementById("filteredNumber");
+      
+      filteredNumberElement.textContent = filteredCount;
+      
+      if (filteredCount > 0) {
+        filteredCountElement.classList.add("active");
+      } else {
+        filteredCountElement.classList.remove("active");
+      }
+      
+      return filteredData;
+    }
+
+    // Calculate "Below 30 min" count properly
+    function calculateBelowThirty(data) {
+      let below30 = 0;
+      
+      data.forEach(row => {
+        // Skip "In Progress" rows
+        if (!row.endTime || row.endTime.trim() === '') return;
+        
+        const duration = parseDuration(row.duration);
+        // Count rows that are below 28 minutes (with 2 minute margin)
+        if (duration < 28 * 60) {
+          below30++;
+        }
+      });
+      
+      return below30;
+    }
+
+    // Helper function to format date as "12th Dec 2025"
+    function formatDateForFilename(dateStr) {
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) return dateStr;
+      
+      const day = parseInt(parts[0]);
+      const month = parseInt(parts[1]);
+      const year = parts[2];
+      
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthName = monthNames[month - 1];
+      
+      // Add ordinal suffix
+      let dayWithSuffix;
+      if (day === 1 || day === 21 || day === 31) {
+        dayWithSuffix = day + "st";
+      } else if (day === 2 || day === 22) {
+        dayWithSuffix = day + "nd";
+      } else if (day === 3 || day === 23) {
+        dayWithSuffix = day + "rd";
+      } else {
+        dayWithSuffix = day + "th";
+      }
+      
+      return `${dayWithSuffix} ${monthName} ${year}`;
+    }
+
+    // Helper function to get previous day date
+    function getPreviousDayDate() {
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      
+      const day = String(yesterday.getDate()).padStart(2, '0');
+      const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+      const year = yesterday.getFullYear();
+      
+      return `${day}/${month}/${year}`;
+    }
+
+    // Export Previous Day as PDF
+    async function exportPreviousDayPDF() {
+      try {
+        const yesterday = getPreviousDayDate();
+        
+        // Set the date pickers to yesterday
+        fromDatePicker.setDate(yesterday);
+        toDatePicker.setDate(yesterday);
+        
+        // Show loading
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.style.position = 'fixed';
+        loadingOverlay.style.top = '0';
+        loadingOverlay.style.left = '0';
+        loadingOverlay.style.width = '100%';
+        loadingOverlay.style.height = '100%';
+        loadingOverlay.style.background = 'rgba(0,0,0,0.7)';
+        loadingOverlay.style.color = 'white';
+        loadingOverlay.style.display = 'flex';
+        loadingOverlay.style.flexDirection = 'column';
+        loadingOverlay.style.alignItems = 'center';
+        loadingOverlay.style.justifyContent = 'center';
+        loadingOverlay.style.zIndex = '10000';
+        loadingOverlay.innerHTML = `
+          <div class="spinner"></div>
+          <p style="margin-top: 20px; font-size: 1.2em;">Loading previous day's data...</p>
+          <p style="margin-top: 10px; font-size: 0.9em;">This may take a moment</p>
+        `;
+        document.body.appendChild(loadingOverlay);
+        
+        // Load data for yesterday
+        await loadData();
+        
+        // Wait for data to load
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Remove loading overlay
+        document.body.removeChild(loadingOverlay);
+        
+        // Export PDF
+        await exportToPDF();
+        
+      } catch (error) {
+        console.error("Error exporting previous day PDF:", error);
+        alert("Error exporting previous day data. Please try again.");
+      }
+    }
+
+    // PDF export function with proper naming
+    async function exportToPDF() {
+      try {
+        const { jsPDF } = window.jspdf;
+        const fromDate = document.getElementById("fromDate").value;
+        const toDate = document.getElementById("toDate").value;
+        
+        // Generate filename based on date range
+        let filename;
+        if (fromDate === toDate) {
+          // Single day
+          filename = `Prepress time monitoring ${formatDateForFilename(fromDate)}.pdf`;
+        } else {
+          // Date range
+          const fromFormatted = formatDateForFilename(fromDate);
+          const toFormatted = formatDateForFilename(toDate);
+          // Extract year from toDate for consistent naming
+          const parts = toDate.split('/');
+          const year = parts[2];
+          filename = `Prepress time monitoring ${fromFormatted.split(' ')[0]} ${fromFormatted.split(' ')[1]} - ${toFormatted.split(' ')[0]} ${toFormatted.split(' ')[1]} ${year}.pdf`;
+        }
+        
+        // Create loading indicator
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.style.position = 'fixed';
+        loadingOverlay.style.top = '0';
+        loadingOverlay.style.left = '0';
+        loadingOverlay.style.width = '100%';
+        loadingOverlay.style.height = '100%';
+        loadingOverlay.style.background = 'rgba(0,0,0,0.7)';
+        loadingOverlay.style.color = 'white';
+        loadingOverlay.style.display = 'flex';
+        loadingOverlay.style.flexDirection = 'column';
+        loadingOverlay.style.alignItems = 'center';
+        loadingOverlay.style.justifyContent = 'center';
+        loadingOverlay.style.zIndex = '10000';
+        loadingOverlay.innerHTML = `
+          <div class="spinner"></div>
+          <p style="margin-top: 20px; font-size: 1.2em;">Generating PDF...</p>
+          <p style="margin-top: 10px; font-size: 0.9em;">This may take a moment</p>
+        `;
+        document.body.appendChild(loadingOverlay);
+        
+        // Create PDF - REMOVED COVER PAGE
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        
+        // Save current state
+        const originalCurrentPress = currentPress;
+        
+        // Add All Presses view (FIRST PAGE - no cover page)
+        selectPress("all");
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const allPressesCanvas = await html2canvas(document.querySelector('.container'), {
+          scale: 1.5,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false
+        });
+        
+        const allPressesImg = allPressesCanvas.toDataURL('image/jpeg', 0.9);
+        pdf.addImage(allPressesImg, 'JPEG', 10, 10, pageWidth - 20, pageHeight - 20);
+        
+        // Add individual press views for 6 presses
+        for (let press = 1; press <= 6; press++) {
+          selectPress(press);
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const pressCanvas = await html2canvas(document.querySelector('.container'), {
+            scale: 1.5,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false
+          });
+          
+          const pressImg = pressCanvas.toDataURL('image/jpeg', 0.9);
+          pdf.addPage();
+          pdf.addImage(pressImg, 'JPEG', 10, 10, pageWidth - 20, pageHeight - 20);
+        }
+        
+        // Restore original state
+        if (originalCurrentPress === "all") {
+          selectPress("all");
+        } else {
+          selectPress(originalCurrentPress);
+        }
+        
+        // Remove loading overlay
+        document.body.removeChild(loadingOverlay);
+        
+        // Save PDF with proper filename
+        pdf.save(filename);
+        
+      } catch (error) {
+        console.error("Error exporting PDF:", error);
+        alert("Error generating PDF. Please try again.");
+      }
+    }
+
+    // NEW EXPORT FUNCTIONS
+    async function exportToCSV() {
+      exportToExcel(); // Reuse the existing CSV export function
+    }
+
+    async function exportToPNG() {
+      try {
+        const fromDate = document.getElementById("fromDate").value;
+        const toDate = document.getElementById("toDate").value;
+        
+        // Create a zip file for multiple screenshots
+        const screenshots = [];
+        
+        // Save current state
+        const originalCurrentPress = currentPress;
+        const originalDisplay = {
+          allPresses: document.getElementById("allPressesContainer").style.display,
+          singlePress: document.getElementById("singlePressContainer").style.display
+        };
+        
+        // Create loading indicator
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.style.position = 'fixed';
+        loadingOverlay.style.top = '0';
+        loadingOverlay.style.left = '0';
+        loadingOverlay.style.width = '100%';
+        loadingOverlay.style.height = '100%';
+        loadingOverlay.style.background = 'rgba(0,0,0,0.7)';
+        loadingOverlay.style.color = 'white';
+        loadingOverlay.style.display = 'flex';
+        loadingOverlay.style.flexDirection = 'column';
+        loadingOverlay.style.alignItems = 'center';
+        loadingOverlay.style.justifyContent = 'center';
+        loadingOverlay.style.zIndex = '10000';
+        loadingOverlay.innerHTML = `
+          <div class="spinner"></div>
+          <p style="margin-top: 20px; font-size: 1.2em;">Capturing screenshots...</p>
+          <p style="margin-top: 10px; font-size: 0.9em;">This may take a moment</p>
+        `;
+        document.body.appendChild(loadingOverlay);
+        
+        // Capture all screens
+        const dateRange = `${fromDate.replace(/\//g, '-')}_to_${toDate.replace(/\//g, '-')}`;
+        
+        // Capture All Presses view
+        selectPress("all");
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const allPressesCanvas = await html2canvas(document.querySelector('.container'), {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: darkMode ? '#0a0a0a' : '#ffffff'
+        });
+        
+        // Capture individual press views for 6 presses
+        for (let press = 1; press <= 6; press++) {
+          selectPress(press);
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const pressCanvas = await html2canvas(document.querySelector('.container'), {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: darkMode ? '#0a0a0a' : '#ffffff'
+          });
+          
+          screenshots.push({
+            name: `Press_${press}_${dateRange}.png`,
+            canvas: pressCanvas
+          });
+        }
+        
+        // Restore original state
+        if (originalCurrentPress === "all") {
+          selectPress("all");
+        } else {
+          selectPress(originalCurrentPress);
+        }
+        
+        // Remove loading overlay
+        document.body.removeChild(loadingOverlay);
+        
+        // Download all screenshots
+        screenshots.forEach((screenshot, index) => {
+          const link = document.createElement('a');
+          link.download = screenshot.name;
+          link.href = screenshot.canvas.toDataURL('image/png');
+          link.click();
+        });
+        
+        // Also download the "All" view
+        const allLink = document.createElement('a');
+        allLink.download = `All_6_Presses_${dateRange}.png`;
+        allLink.href = allPressesCanvas.toDataURL('image/png');
+        allLink.click();
+        
+      } catch (error) {
+        console.error("Error exporting PNG:", error);
+        alert("Error capturing screenshots. Please try again.");
+      }
+    }
+
+    async function loadTodayStatusData() {
+      try {
+        const today = new Date();
+        const todayFormatted = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        
+        const promises = [];
+        // Load data for 6 presses
+        for (let press = 1; press <= 6; press++) {
+          promises.push(fetchDataForPress(press, todayFormatted, todayFormatted));
+        }
+        
+        const results = await Promise.all(promises);
+        
+        results.forEach((result, idx) => {
+          todayStatusData[idx + 1] = result.records || [];
+        });
+        
+        updatePressStatus();
+      } catch (error) {
+        console.error("Error loading today's status data:", error);
+      }
+    }
+
+    async function fetchDataForPress(press, fromDate, toDate) {
+      try {
+        const url = `${SCRIPT_URL}?action=getData&press=${press}&fromDate=${fromDate}&toDate=${toDate}`;
+        console.log(`Fetching data from: ${url}`);
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`Press ${press} data:`, data);
+        
+        // Handle both response formats
+        if (data.records !== undefined) {
+          return data;
+        } else if (Array.isArray(data)) {
+          return { records: data };
+        } else {
+          return { records: [] };
+        }
+      } catch (error) {
+        console.error(`Error fetching press ${press}:`, error);
+        return { records: [] };
+      }
+    }
+
+    function updateDateTime() {
+      const now = new Date();
+      const options = {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      };
+      document.getElementById("currentDateTime").textContent = now.toLocaleDateString("en-US", options);
+    }
+
+    function formatDateToYYYYMMDD(dateStr) {
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) return '';
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+
+    function parseDate(dateStr) {
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) return new Date();
+      return new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+
+    function initializePressButtons() {
+      const container = document.getElementById("pressButtons");
+      container.innerHTML = "";
+
+      const allBtn = document.createElement("button");
+      allBtn.className = "press-btn active";
+      allBtn.innerHTML = `<span class="status-indicator status-idle"></span>All`;
+      allBtn.onclick = () => selectPress("all");
+      container.appendChild(allBtn);
+
+      // Create buttons for 6 presses
+      for (let i = 1; i <= 6; i++) {
+        const btn = document.createElement("button");
+        btn.className = "press-btn";
+        btn.innerHTML = `<span class="status-indicator status-idle"></span>Press ${i}`;
+        btn.onclick = () => selectPress(i);
+        container.appendChild(btn);
+      }
+    }
+
+    function selectPress(press) {
+      currentPress = press;
+      
+      document.querySelectorAll(".press-btn").forEach((btn, idx) => {
+        btn.classList.toggle("active", (idx === 0 && press === "all") || idx === press);
+      });
+
+      document.getElementById("pressTitle").textContent = 
+        press === "all" ? "All 6 Pre Presses" : `Pre Press - ${press}`;
+
+      if (press === "all") {
+        document.getElementById("singlePressContainer").style.display = "none";
+        document.getElementById("allPressesContainer").style.display = "block";
+        displayAllPresses();
+      } else {
+        document.getElementById("singlePressContainer").style.display = "block";
+        document.getElementById("allPressesContainer").style.display = "none";
+        displaySinglePress(press);
+      }
+    }
+
+    async function loadData() {
+      const fromDate = document.getElementById("fromDate").value;
+      const toDate = document.getElementById("toDate").value;
+
+      if (!fromDate || !toDate) {
+        alert("Please select both dates.");
+        return;
+      }
+
+      updateLoadingQuotes();
+
+      document.getElementById("loadingContainer").style.display = "block";
+      document.getElementById("dataTable").style.display = "none";
+      document.getElementById("noDataContainer").style.display = "none";
+      
+      document.getElementById("allPressLoadingContainer").style.display = "block";
+      document.getElementById("allPressStats").style.display = "none";
+      document.getElementById("allPressesTables").style.display = "none";
+
+      try {
+        const fromFormatted = formatDateToYYYYMMDD(fromDate);
+        const toFormatted = formatDateToYYYYMMDD(toDate);
+
+        allData = {};
+        const promises = [];
+
+        // Fetch data for 6 presses
+        for (let press = 1; press <= 6; press++) {
+          promises.push(fetchDataForPress(press, fromFormatted, toFormatted));
+        }
+
+        const results = await Promise.all(promises);
+        
+        results.forEach((result, idx) => {
+          allData[idx + 1] = result.records || [];
+        });
+
+        if (Object.keys(todayStatusData).length === 0) {
+          await loadTodayStatusData();
+        }
+
+        updatePressStatus();
+
+        if (currentPress === "all") {
+          displayAllPresses();
+        } else {
+          displaySinglePress(currentPress);
+        }
+
+        document.getElementById("loadingContainer").style.display = "none";
+        document.getElementById("allPressLoadingContainer").style.display = "none";
+      } catch (error) {
+        console.error("Error loading data:", error);
+        document.getElementById("loadingContainer").style.display = "none";
+        document.getElementById("noDataContainer").style.display = "block";
+        
+        // Show 0 in all KPI cards when no data
+        document.getElementById("totalPresses").textContent = "0";
+        document.getElementById("avgDuration").textContent = "0:00";
+        document.getElementById("belowThirty").textContent = "0";
+        
+        document.getElementById("allPressLoadingContainer").style.display = "none";
+        document.getElementById("allPressStats").style.display = "grid";
+        document.getElementById("allPressesTables").style.display = "grid";
+      }
+    }
+
+    function displaySinglePress(press) {
+      const rawData = allData[press] || [];
+      const data = filterData(rawData);
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+
+      if (data.length === 0) {
+        document.getElementById("loadingContainer").style.display = "none";
+        document.getElementById("dataTable").style.display = "none";
+        document.getElementById("noDataContainer").style.display = "block";
+        
+        // Show 0 in all KPI cards when no data
+        document.getElementById("totalPresses").textContent = "0";
+        document.getElementById("avgDuration").textContent = "0:00";
+        document.getElementById("belowThirty").textContent = "0";
+        return;
+      }
+
+      // Sort data by date and time (newest first)
+      const sortedData = [...data].sort((a, b) => {
+        const dateA = parseDate(a.date);
+        const dateB = parseDate(b.date);
+        if (dateA.getTime() !== dateB.getTime()) {
+          return dateB.getTime() - dateA.getTime();
+        }
+        // If same date, sort by start time
+        const timeA = a.startTime.split(':').map(Number);
+        const timeB = b.startTime.split(':').map(Number);
+        return (timeB[0] * 3600 + timeB[1] * 60 + timeB[2]) - 
+               (timeA[0] * 3600 + timeA[1] * 60 + timeA[2]);
+      });
+
+      sortedData.forEach((row, idx) => {
+        const tr = document.createElement("tr");
+        
+        if (!row.endTime || row.endTime.trim() === '') {
+          tr.classList.add("in-progress");
+        } else {
+          const duration = parseDuration(row.duration);
+          if (duration >= 28 * 60) tr.classList.add("success");
+          else if (duration >= 25 * 60) tr.classList.add("warning");
+          else tr.classList.add("danger");
+        }
+
+        let idleStr = '00:00:00';
+        if (idx < sortedData.length - 1) {
+          const nextRow = sortedData[idx + 1];
+          const idle = calculateIdleTime(row.startTime, row.date, nextRow.endTime, nextRow.date);
+          if (idle && idle !== '00:00:00') {
+            idleStr = idle;
+          }
+        }
+
+        // FIX: "In Progress" label moved to Duration column
+        const durationText = !row.endTime || row.endTime.trim() === '' ? "In Progress" : row.duration;
+        const endTimeText = row.endTime || "";
+        
+        tr.innerHTML = `
+          <td>${row.date}</td>
+          <td>${row.startTime}</td>
+          <td>${endTimeText}</td>
+          <td class="duration ${getDurationClass(row.duration)}">${durationText}</td>
+          <td class="idle-time">${idleStr}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("loadingContainer").style.display = "none";
+      document.getElementById("dataTable").style.display = "table";
+      document.getElementById("noDataContainer").style.display = "none";
+
+      updateStatsForPress(press);
+    }
+
+    function displayAllPresses() {
+      const tables = document.getElementById("allPressesTables");
+      const stats = document.getElementById("allPressStats");
+      
+      stats.style.display = "grid";
+      tables.style.display = "grid";
+      
+      tables.innerHTML = "";
+      stats.innerHTML = "";
+
+      let totalCompleted = 0, totalDur = 0, below30 = 0, working = 0;
+      let filteredTotal = 0;
+      let totalFiltered = 0;
+
+      // Process data for 6 presses
+      for (let press = 1; press <= 6; press++) {
+        const rawData = allData[press] || [];
+        // Exclude "In Progress" from total count
+        const completedData = rawData.filter(row => row.endTime && row.endTime.trim() !== '');
+        const data = filterData(completedData);
+        const todayData = todayStatusData[press] || [];
+        
+        totalCompleted += completedData.length;
+        filteredTotal += data.length;
+        totalFiltered += (completedData.length - data.length);
+        
+        let pressDur = 0, pressBelow = 0;
+        const pressWorking = todayData.some(row => !row.endTime || row.endTime.trim() === '');
+        
+        // Use calculateBelowThirty function for accurate counting
+        pressBelow = calculateBelowThirty(data);
+        
+        data.forEach(row => {
+          const dur = parseDuration(row.duration);
+          pressDur += dur;
+        });
+        
+        totalDur += pressDur;
+        below30 += pressBelow;
+        if (pressWorking) working++;
+
+        // Sort data for this press (newest first)
+        const sortedData = [...data].sort((a, b) => {
+          const dateA = parseDate(a.date);
+          const dateB = parseDate(b.date);
+          if (dateA.getTime() !== dateB.getTime()) {
+            return dateB.getTime() - dateA.getTime();
+          }
+          const timeA = a.startTime.split(':').map(Number);
+          const timeB = b.startTime.split(':').map(Number);
+          return (timeB[0] * 3600 + timeB[1] * 60 + timeB[2]) - 
+                 (timeA[0] * 3600 + timeA[1] * 60 + timeA[2]);
+        });
+
+        const container = document.createElement("div");
+        container.className = "mini-table-container";
+        
+        container.innerHTML = `
+          <div class="mini-table-header">
+            <span class="status-indicator ${pressWorking ? 'status-working' : 'status-idle'}"></span>
+            Pre Press - ${press}
+            ${filterEnabled && data.length < completedData.length ? 
+              `<span style="font-size:0.7em; opacity:0.8; margin-left:8px;">
+                (${data.length}/${completedData.length})
+              </span>` : ''}
+          </div>
+          <table class="mini-table">
+            <thead><tr><th>Date</th><th>Start</th><th>End</th><th>Duration</th></tr></thead>
+            <tbody>
+              ${sortedData.slice(0, 3).map(row => {
+                const durationText = !row.endTime || row.endTime.trim() === '' ? "In Progress" : row.duration;
+                const endTimeText = row.endTime || "";
+                return `
+                <tr>
+                  <td>${row.date}</td>
+                  <td>${row.startTime}</td>
+                  <td>${endTimeText}</td>
+                  <td class="duration ${getDurationClass(row.duration)}">${durationText}</td>
+                </tr>
+              `}).join('')}
+              ${sortedData.length > 3 ? `<tr><td colspan="4" class="more-entries" onclick="expandPress(${press})">+${sortedData.length - 3} more</td></tr>` : ''}
+              ${sortedData.length === 0 ? '<tr><td colspan="4" class="no-data-cell" style="text-align:center;padding:20px;">No data</td></tr>' : ''}
+            </tbody>
+          </table>
+        `;
+        tables.appendChild(container);
+      }
+
+      const avg = filteredTotal > 0 ? formatDuration(totalDur / filteredTotal) : "0:00";
+      
+      // Update KPI cards with correct below30 count
+      document.getElementById("totalPresses").textContent = filteredTotal;
+      document.getElementById("avgDuration").textContent = avg;
+      document.getElementById("belowThirty").textContent = below30;
+      
+      stats.innerHTML = `
+        <div class="all-stat-card"><h4>Total Entries</h4><div class="value">${filteredTotal}</div></div>
+        <div class="all-stat-card"><h4>Avg Duration</h4><div class="value">${avg}</div></div>
+        <div class="all-stat-card"><h4>Below 30 Min</h4><div class="value">${below30}</div></div>
+        <div class="all-stat-card"><h4>Currently Working</h4><div class="value">${working}/6</div></div>
+      `;
+      
+      if (filterEnabled && totalFiltered > 0) {
+        stats.innerHTML += `
+          <div class="all-stat-card filter-status-card">
+            <h4>Filter Status</h4>
+            <div class="value">
+              Hiding &lt;${filterThreshold} min (${totalFiltered} entries filtered)
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function expandPress(num) {
+      selectPress(num);
+      document.getElementById('singlePressContainer').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function updateStatsForPress(press) {
+      const rawData = allData[press] || [];
+      // Exclude "In Progress" from calculations
+      const completedData = rawData.filter(row => row.endTime && row.endTime.trim() !== '');
+      const data = filterData(completedData);
+      
+      let totalDur = 0;
+      let below30 = 0;
+      
+      data.forEach(row => {
+        const dur = parseDuration(row.duration);
+        totalDur += dur;
+      });
+      
+      // Use calculateBelowThirty function
+      below30 = calculateBelowThirty(data);
+      
+      document.getElementById("totalPresses").textContent = data.length;
+      document.getElementById("avgDuration").textContent = data.length > 0 ? formatDuration(totalDur / data.length) : "0:00";
+      document.getElementById("belowThirty").textContent = below30;
+    }
+
+    function updatePressStatus() {
+      let allWorking = true;
+      
+      // Check status for 6 presses
+      for (let press = 1; press <= 6; press++) {
+        const data = todayStatusData[press] || [];
+        const isWorking = data.some(row => !row.endTime || row.endTime.trim() === '');
+        
+        const btns = document.querySelectorAll(".press-btn");
+        if (btns[press]) {
+          const ind = btns[press].querySelector(".status-indicator");
+          if (ind) ind.className = `status-indicator ${isWorking ? 'status-working' : 'status-idle'}`;
+        }
+        
+        // All button is green only if ALL presses are in progress
+        if (!isWorking) {
+          allWorking = false;
+        }
+      }
+      
+      // Update All button status
+      const allBtn = document.querySelector(".press-btn");
+      if (allBtn) {
+        const ind = allBtn.querySelector(".status-indicator");
+        if (ind) ind.className = `status-indicator ${allWorking ? 'status-working' : 'status-idle'}`;
+      }
+    }
+
+    function parseDuration(str) {
+      if (!str || str === "Pressing" || str === "In Progress") return 0;
+      const parts = str.split(':');
+      if (parts.length === 2) {
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      }
+      return 0;
+    }
+
+    function formatDuration(secs) {
+      const m = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    function getDurationClass(str) {
+      if (!str || str === "Pressing" || str === "In Progress") return "in-progress";
+      const dur = parseDuration(str);
+      if (dur >= 28 * 60) return "success";
+      if (dur >= 25 * 60) return "warning";
+      return "danger";
+    }
+
+    function calculateIdleTime(currStart, currDate, prevEnd, prevDate) {
+      if (!prevEnd || prevEnd.trim() === '' || !currStart) return null;
+      
+      try {
+        // Parse dates (DD/MM/YYYY format)
+        const currParts = currDate.split('/');
+        const prevParts = prevDate.split('/');
+        
+        if (currParts.length !== 3 || prevParts.length !== 3) return null;
+        
+        const currDateObj = new Date(
+          parseInt(currParts[2]),
+          parseInt(currParts[1]) - 1,
+          parseInt(currParts[0])
+        );
+        
+        const prevDateObj = new Date(
+          parseInt(prevParts[2]),
+          parseInt(prevParts[1]) - 1,
+          parseInt(prevParts[0])
+        );
+        
+        // Parse times (HH:MM:SS format)
+        const currTime = currStart.split(':').map(Number);
+        const prevTime = prevEnd.split(':').map(Number);
+        
+        if (currTime.length !== 3 || prevTime.length !== 3) return null;
+        
+        // Set times to date objects
+        currDateObj.setHours(currTime[0], currTime[1], currTime[2], 0);
+        prevDateObj.setHours(prevTime[0], prevTime[1], prevTime[2], 0);
+        
+        // Calculate difference in seconds
+        const diffSec = Math.floor((currDateObj - prevDateObj) / 1000);
+        
+        // If negative (shouldn't happen with sorted data), return null
+        if (diffSec < 0) return null;
+        
+        // Format as HH:MM:SS
+        const h = Math.floor(diffSec / 3600);
+        const m = Math.floor((diffSec % 3600) / 60);
+        const s = diffSec % 60;
+        
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      } catch (error) {
+        console.error("Error calculating idle time:", error);
+        return null;
+      }
+    }
+
+    function exportToExcel() {
+      const fromDate = document.getElementById("fromDate").value;
+      const toDate = document.getElementById("toDate").value;
+      
+      let csvContent = "";
+      let filename = "";
+      
+      if (currentPress === "all") {
+        filename = `All_6_Presses_${fromDate.replace(/\//g, '-')}_to_${toDate.replace(/\//g, '-')}.csv`;
+        csvContent = "Press,Date,Start Time,End Time,Duration,Status,Filtered\n";
+        
+        // Export data for 6 presses
+        for (let press = 1; press <= 6; press++) {
+          const data = allData[press] || [];
+          data.forEach(row => {
+            const duration = parseDuration(row.duration);
+            const isInProgress = !row.endTime || row.endTime.trim() === '';
+            const isFiltered = filterEnabled && !isInProgress && duration < (filterThreshold * 60);
+            const status = isInProgress ? "In Progress" : "Completed";
+            csvContent += `Press ${press},${row.date},${row.startTime},${row.endTime || ""},${isInProgress ? "In Progress" : row.duration},${status},${isFiltered ? "YES" : "NO"}\n`;
+          });
+        }
+      } else {
+        filename = `Press_${currentPress}_${fromDate.replace(/\//g, '-')}_to_${toDate.replace(/\//g, '-')}.csv`;
+        csvContent = "Date,Start Time,End Time,Duration,Idle Time,Status,Filtered\n";
+        
+        const data = allData[currentPress] || [];
+        const sortedData = [...data].sort((a, b) => {
+          const dateA = parseDate(a.date);
+          const dateB = parseDate(b.date);
+          if (dateA.getTime() !== dateB.getTime()) {
+            return dateB.getTime() - dateA.getTime();
+          }
+          const timeA = a.startTime.split(':').map(Number);
+          const timeB = b.startTime.split(':').map(Number);
+          return (timeB[0] * 3600 + timeB[1] * 60 + timeB[2]) - 
+                 (timeA[0] * 3600 + timeA[1] * 60 + timeA[2]);
+        });
+        
+        sortedData.forEach((row, idx) => {
+          let idleStr = '00:00:00';
+          if (idx < sortedData.length - 1) {
+            const nextRow = sortedData[idx + 1];
+            const idle = calculateIdleTime(row.startTime, row.date, nextRow.endTime, nextRow.date);
+            if (idle) idleStr = idle;
+          }
+          const duration = parseDuration(row.duration);
+          const isInProgress = !row.endTime || row.endTime.trim() === '';
+          const isFiltered = filterEnabled && !isInProgress && duration < (filterThreshold * 60);
+          const status = isInProgress ? "In Progress" : "Completed";
+          const durationText = isInProgress ? "In Progress" : row.duration;
+          csvContent += `${row.date},${row.startTime},${row.endTime || ""},${durationText},${idleStr},${status},${isFiltered ? "YES" : "NO"}\n`;
+        });
+      }
+      
+      if (csvContent.split('\n').length <= 2) {
+        alert("No data available to export.");
+        return;
+      }
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      
+      if (navigator.msSaveBlob) {
+        navigator.msSaveBlob(blob, filename);
+      } else {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    function toggleTheme() {
+      darkMode = !darkMode;
+      document.body.classList.toggle("dark-mode", darkMode);
+      
+      if (darkMode) createCelestialEffects();
+      else removeCelestialEffects();
+    }
+
+    function createCelestialEffects() {
+      for (let i = 0; i < 15; i++) createFirefly();
+      for (let i = 0; i < 5; i++) createOrb();
+      meteorInterval = setInterval(createMeteor, 2000);
+    }
+
+    function removeCelestialEffects() {
+      document.querySelectorAll('.firefly, .orb, .meteor').forEach(el => el.remove());
+      if (meteorInterval) clearInterval(meteorInterval);
+      fireflies = [];
+      orbs = [];
+      meteors = [];
+    }
+
+    function createFirefly() {
+      const el = document.createElement('div');
+      el.className = 'firefly';
+      document.body.appendChild(el);
+      
+      el.style.left = `${Math.random() * window.innerWidth}px`;
+      el.style.top = `${Math.random() * window.innerHeight}px`;
+      
+      const anim = el.animate([
+        { transform: 'translate(0, 0)', opacity: 0 },
+        { transform: `translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px)`, opacity: 0.8 },
+        { transform: `translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px)`, opacity: 0 }
+      ], { duration: 3000 + Math.random() * 4000, iterations: Infinity, easing: 'ease-in-out' });
+      
+      fireflies.push({ element: el, animation: anim });
+    }
+
+    function createOrb() {
+      const el = document.createElement('div');
+      el.className = 'orb';
+      document.body.appendChild(el);
+      
+      const size = 40 + Math.random() * 80;
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+      el.style.left = `${Math.random() * window.innerWidth}px`;
+      el.style.top = `${Math.random() * window.innerHeight}px`;
+      
+      const anim = el.animate([
+        { transform: 'translate(0, 0)', opacity: 0.1 },
+        { transform: `translate(${Math.random() * 200 - 100}px, ${Math.random() * 200 - 100}px)`, opacity: 0.4 },
+        { transform: `translate(${Math.random() * 200 - 100}px, ${Math.random() * 200 - 100}px)`, opacity: 0.1 }
+      ], { duration: 10000 + Math.random() * 15000, iterations: Infinity, easing: 'ease-in-out' });
+      
+      orbs.push({ element: el, animation: anim });
+    }
+
+    function createMeteor() {
+      const el = document.createElement('div');
+      el.className = 'meteor';
+      document.body.appendChild(el);
+      
+      el.style.left = `${Math.random() * window.innerWidth}px`;
+      el.style.top = '-50px';
+      
+      const dist = 300 + Math.random() * 400;
+      const anim = el.animate([
+        { transform: 'translate(0, 0) rotate(-45deg)', opacity: 0 },
+        { transform: `translate(${dist}px, ${dist}px) rotate(-45deg)`, opacity: 1 },
+        { transform: `translate(${dist * 1.2}px, ${dist * 1.2}px) rotate(-45deg)`, opacity: 0 }
+      ], { duration: 1000 + Math.random() * 2000, iterations: 1, easing: 'ease-in' });
+      
+      anim.onfinish = () => el.remove();
+      meteors.push(el);
+    }
+
+    function initializeLanternCursor() {
+      const lantern = document.getElementById('lanternCursor');
+      
+      document.addEventListener('mousemove', (e) => {
+        lantern.style.left = `${e.clientX - 20}px`;
+        lantern.style.top = `${e.clientY - 30}px`;
+        
+        if (darkMode) {
+          const repel = document.createElement('div');
+          repel.className = 'repel-effect';
+          repel.style.left = `${e.clientX - 50}px`;
+          repel.style.top = `${e.clientY - 50}px`;
+          document.body.appendChild(repel);
+          
+          const anim = repel.animate([
+            { transform: 'scale(0.5)', opacity: 0.6 },
+            { transform: 'scale(1.5)', opacity: 0 }
+          ], { duration: 800, easing: 'ease-out' });
+          
+          anim.onfinish = () => repel.remove();
+        }
+      });
+    }
+  </script>
+</body>
+</html>
