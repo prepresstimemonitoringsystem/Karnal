@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Pre Press Time Monitoring System</title>
+  <title>Pre Press Time Monitoring System - 6 Presses</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/material_blue.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -764,7 +764,7 @@
     ::-webkit-scrollbar-thumb:hover { background: #7f7f7f; }
 
     .container {
-      max-width: 1400px; /* Increased for 6 presses */
+      max-width: 1400px;
       margin: 0 auto;
       background: white;
       border-radius: 12px;
@@ -907,18 +907,18 @@
     /* Updated press-selector for 6 presses */
     .press-selector {
       display: grid;
-      grid-template-columns: repeat(4, 1fr); /* 4 columns for mobile */
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
     }
 
     @media (min-width: 768px) {
       .press-selector {
-        grid-template-columns: repeat(7, 1fr); /* 8 columns for desktop (All + 6 presses) */
+        grid-template-columns: repeat(7, 1fr);
       }
     }
 
     .press-btn {
-      padding: 10px 8px; /* Slightly smaller padding for more buttons */
+      padding: 10px 8px;
       border: 2px solid #dee2e6;
       border-radius: 8px;
       background: white;
@@ -929,9 +929,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px; /* Smaller gap */
-      font-size: 0.8em; /* Smaller font */
-      min-height: 40px; /* Smaller height */
+      gap: 4px;
+      font-size: 0.8em;
+      min-height: 40px;
       touch-action: manipulation;
     }
 
@@ -948,7 +948,7 @@
     }
 
     .status-indicator {
-      width: 8px; /* Smaller indicator */
+      width: 8px;
       height: 8px;
       border-radius: 50%;
       display: inline-block;
@@ -1421,7 +1421,7 @@
       .control-group { min-width: 160px; }
 
       .press-btn {
-        padding: 10px 12px; /* Adjusted for more buttons */
+        padding: 10px 12px;
         font-size: 0.85em;
       }
 
@@ -1542,7 +1542,7 @@
 
   <div class="container">
     <div class="header">
-      <h1>Pre Press Time Monitoring System</h1>
+      <h1>Pre Press Time Monitoring System - 6 Presses</h1>
       <div class="datetime" id="currentDateTime"></div>
     </div>
 
@@ -1654,7 +1654,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziWBzuxJDRurPbKnIozW1_kFMvfhvrT1XMtqpWrAu29mHe1S34A1_G2JL4CGOUnHc3vg/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziWBzuxJDRurPbKnIozW1_kFMvfhvrT1XMtqpWrAu29mHe1S34A1_G2JL4CGOUnHc3vg/exec"; // Replace with your actual URL
 
     const LOADING_QUOTES = [
       "Every step forward counts.",
@@ -1752,7 +1752,7 @@
     let filterEnabled = true;
     let filterThreshold = 6;
     let filteredCount = 0;
-    let filterMinimized = true; // Start minimized by default
+    let filterMinimized = true;
     
     // Dragging variables
     let isDragging = false;
@@ -1837,7 +1837,7 @@
       initializeLanternCursor();
     });
 
-    // FIXED: Initialize filter controls with proper event listeners
+    // Initialize filter controls with proper event listeners
     function initializeFilterControls() {
       const filterToggle = document.getElementById("filterToggle");
       const filterToggleButton = document.getElementById("filterToggleButton");
@@ -1880,7 +1880,7 @@
       });
     }
 
-    // FIXED: Dragging only on header
+    // Dragging only on header
     function initializeDragging(element, handle) {
       let isDragging = false;
       let startX, startY, initialLeft, initialTop;
@@ -2062,7 +2062,7 @@
       return filteredData;
     }
 
-    // FIXED: Calculate "Below 30 min" count properly (counting yellow and red highlights)
+    // Calculate "Below 30 min" count properly
     function calculateBelowThirty(data) {
       let below30 = 0;
       
@@ -2120,7 +2120,7 @@
       return `${day}/${month}/${year}`;
     }
 
-    // NEW: Export Previous Day as PDF
+    // Export Previous Day as PDF
     async function exportPreviousDayPDF() {
       try {
         const yesterday = getPreviousDayDate();
@@ -2168,7 +2168,7 @@
       }
     }
 
-    // Updated PDF export function with proper naming
+    // PDF export function with proper naming
     async function exportToPDF() {
       try {
         const { jsPDF } = window.jspdf;
@@ -2233,7 +2233,7 @@
         const allPressesImg = allPressesCanvas.toDataURL('image/jpeg', 0.9);
         pdf.addImage(allPressesImg, 'JPEG', 10, 10, pageWidth - 20, pageHeight - 20);
         
-        // Add individual press views -
+        // Add individual press views for 6 presses
         for (let press = 1; press <= 6; press++) {
           selectPress(press);
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -2315,7 +2315,7 @@
         
         // Capture All Presses view
         selectPress("all");
-        await new Promise(resolve => setTimeout(resolve, 500)); // Wait for render
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         const allPressesCanvas = await html2canvas(document.querySelector('.container'), {
           scale: 2,
@@ -2323,10 +2323,10 @@
           backgroundColor: darkMode ? '#0a0a0a' : '#ffffff'
         });
         
-        // Capture individual press views - UPDATED TO 6 PRESSES
+        // Capture individual press views for 6 presses
         for (let press = 1; press <= 6; press++) {
           selectPress(press);
-          await new Promise(resolve => setTimeout(resolve, 500)); // Wait for render
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           const pressCanvas = await html2canvas(document.querySelector('.container'), {
             scale: 2,
@@ -2376,7 +2376,7 @@
         const todayFormatted = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         
         const promises = [];
-        // UPDATED TO 6 PRESSES
+        // Load data for 6 presses
         for (let press = 1; press <= 6; press++) {
           promises.push(fetchDataForPress(press, todayFormatted, todayFormatted));
         }
@@ -2390,6 +2390,33 @@
         updatePressStatus();
       } catch (error) {
         console.error("Error loading today's status data:", error);
+      }
+    }
+
+    async function fetchDataForPress(press, fromDate, toDate) {
+      try {
+        const url = `${SCRIPT_URL}?action=getData&press=${press}&fromDate=${fromDate}&toDate=${toDate}`;
+        console.log(`Fetching data from: ${url}`);
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`Press ${press} data:`, data);
+        
+        // Handle both response formats
+        if (data.records !== undefined) {
+          return data;
+        } else if (Array.isArray(data)) {
+          return { records: data };
+        } else {
+          return { records: [] };
+        }
+      } catch (error) {
+        console.error(`Error fetching press ${press}:`, error);
+        return { records: [] };
       }
     }
 
@@ -2429,7 +2456,7 @@
       allBtn.onclick = () => selectPress("all");
       container.appendChild(allBtn);
 
-      // UPDATED TO 6 PRESSES
+      // Create buttons for 6 presses
       for (let i = 1; i <= 6; i++) {
         const btn = document.createElement("button");
         btn.className = "press-btn";
@@ -2486,7 +2513,7 @@
         allData = {};
         const promises = [];
 
-        // UPDATED TO 6 PRESSES
+        // Fetch data for 6 presses
         for (let press = 1; press <= 6; press++) {
           promises.push(fetchDataForPress(press, fromFormatted, toFormatted));
         }
@@ -2526,49 +2553,6 @@
         document.getElementById("allPressesTables").style.display = "grid";
       }
     }
-
-    (press, fromDate, toDate) {
-      try {
-  
-
-
-
-
-
-
-async function fetchDataForPress(press, fromDate, toDate) {
-  try {
-    const url = `${SCRIPT_URL}?action=getData&press=${press}&fromDate=${fromDate}&toDate=${toDate}`;
-    console.log(`Fetching data from: ${url}`);
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log(`Press ${press} data:`, data);
-    
-    // Handle both response formats
-    if (data.records !== undefined) {
-      return data;
-    } else if (Array.isArray(data)) {
-      return { records: data };
-    } else {
-      return { records: [] };
-    }
-  } catch (error) {
-    console.error(`Error fetching press ${press}:`, error);
-    return { records: [] };
-  }
-}
-
-
-
-
-
-
-
 
     function displaySinglePress(press) {
       const rawData = allData[press] || [];
@@ -2658,7 +2642,7 @@ async function fetchDataForPress(press, fromDate, toDate) {
       let filteredTotal = 0;
       let totalFiltered = 0;
 
-      // UPDATED TO 6 PRESSES
+      // Process data for 6 presses
       for (let press = 1; press <= 6; press++) {
         const rawData = allData[press] || [];
         // Exclude "In Progress" from total count
@@ -2673,7 +2657,7 @@ async function fetchDataForPress(press, fromDate, toDate) {
         let pressDur = 0, pressBelow = 0;
         const pressWorking = todayData.some(row => !row.endTime || row.endTime.trim() === '');
         
-        // FIXED: Use calculateBelowThirty function for accurate counting
+        // Use calculateBelowThirty function for accurate counting
         pressBelow = calculateBelowThirty(data);
         
         data.forEach(row => {
@@ -2734,7 +2718,7 @@ async function fetchDataForPress(press, fromDate, toDate) {
 
       const avg = filteredTotal > 0 ? formatDuration(totalDur / filteredTotal) : "0:00";
       
-      // FIXED: Update KPI cards with correct below30 count
+      // Update KPI cards with correct below30 count
       document.getElementById("totalPresses").textContent = filteredTotal;
       document.getElementById("avgDuration").textContent = avg;
       document.getElementById("belowThirty").textContent = below30;
@@ -2743,7 +2727,7 @@ async function fetchDataForPress(press, fromDate, toDate) {
         <div class="all-stat-card"><h4>Total Entries</h4><div class="value">${filteredTotal}</div></div>
         <div class="all-stat-card"><h4>Avg Duration</h4><div class="value">${avg}</div></div>
         <div class="all-stat-card"><h4>Below 30 Min</h4><div class="value">${below30}</div></div>
-        <div class="all-stat-card"><h4>Currently Working</h4><div class="value">${working}/6</div></div> <!-- UPDATED TO 6 -->
+        <div class="all-stat-card"><h4>Currently Working</h4><div class="value">${working}/6</div></div>
       `;
       
       if (filterEnabled && totalFiltered > 0) {
@@ -2777,7 +2761,7 @@ async function fetchDataForPress(press, fromDate, toDate) {
         totalDur += dur;
       });
       
-      // FIXED: Use calculateBelowThirty function
+      // Use calculateBelowThirty function
       below30 = calculateBelowThirty(data);
       
       document.getElementById("totalPresses").textContent = data.length;
@@ -2788,7 +2772,7 @@ async function fetchDataForPress(press, fromDate, toDate) {
     function updatePressStatus() {
       let allWorking = true;
       
-      // UPDATED TO 6 PRESSES
+      // Check status for 6 presses
       for (let press = 1; press <= 6; press++) {
         const data = todayStatusData[press] || [];
         const isWorking = data.some(row => !row.endTime || row.endTime.trim() === '');
@@ -2897,7 +2881,7 @@ async function fetchDataForPress(press, fromDate, toDate) {
         filename = `All_6_Presses_${fromDate.replace(/\//g, '-')}_to_${toDate.replace(/\//g, '-')}.csv`;
         csvContent = "Press,Date,Start Time,End Time,Duration,Status,Filtered\n";
         
-        // UPDATED TO 6 PRESSES
+        // Export data for 6 presses
         for (let press = 1; press <= 6; press++) {
           const data = allData[press] || [];
           data.forEach(row => {
